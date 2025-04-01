@@ -7,7 +7,7 @@ for extracurricular activities at Mergington High School.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 import os
 from pathlib import Path
 
@@ -118,3 +118,59 @@ def signup_for_activity(activity_name: str, email: str):
     
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+
+@app.get("/activities/{activity_name}/card", response_class=HTMLResponse)
+def get_activity_card(activity_name: str):
+    """Get an HTML card for a specific activity with participants listed"""
+    # Validate activity exists
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Get the specific activity
+    activity = activities[activity_name]
+
+    # Generate HTML for the activity card
+    participants_list = "".join(f"<li>{participant}</li>" for participant in activity["participants"])
+    html_content = f"""
+    <html>
+        <head>
+            <title>{activity_name} - Activity Card</title>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                }}
+                .card {{
+                    border: 1px solid #ccc;
+                    border-radius: 8px;
+                    padding: 16px;
+                    max-width: 400px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                }}
+                .card h2 {{
+                    margin-top: 0;
+                }}
+                .card ul {{
+                    padding-left: 20px;
+                }}
+                .card ul li {{
+                    margin-bottom: 5px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h2>{activity_name}</h2>
+                <p><strong>Description:</strong> {activity["description"]}</p>
+                <p><strong>Schedule:</strong> {activity["schedule"]}</p>
+                <p><strong>Max Participants:</strong> {activity["max_participants"]}</p>
+                <p><strong>Participants:</strong></p>
+                <ul>
+                    {participants_list}
+                </ul>
+            </div>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
