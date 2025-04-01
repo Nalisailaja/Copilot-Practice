@@ -7,7 +7,7 @@ for extracurricular activities at Mergington High School.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 import os
 from pathlib import Path
 
@@ -38,6 +38,42 @@ activities = {
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+    },
+    "Soccer Team": {
+        "description": "Join the school soccer team and compete in matches",
+        "schedule": "Tuesdays and Thursdays, 4:00 PM - 5:30 PM",
+        "max_participants": 22,
+        "participants": ["liam@mergington.edu", "noah@mergington.edu"]
+    },
+    "Basketball Team": {
+        "description": "Practice and play basketball with the school team",
+        "schedule": "Wednesdays and Fridays, 3:30 PM - 5:00 PM",
+        "max_participants": 15,
+        "participants": ["ava@mergington.edu", "mia@mergington.edu"]
+    },
+    "Art Club": {
+        "description": "Explore various art techniques and create your own masterpieces",
+        "schedule": "Mondays, 3:30 PM - 5:00 PM",
+        "max_participants": 15,
+        "participants": ["isabella@mergington.edu", "amelia@mergington.edu"]
+    },
+    "Drama Club": {
+        "description": "Participate in plays and improve your acting skills",
+        "schedule": "Thursdays, 4:00 PM - 5:30 PM",
+        "max_participants": 20,
+        "participants": ["lucas@mergington.edu", "ella@mergington.edu"]
+    },
+    "Math Club": {
+        "description": "Solve challenging math problems and prepare for competitions",
+        "schedule": "Wednesdays, 3:30 PM - 4:30 PM",
+        "max_participants": 10,
+        "participants": ["ethan@mergington.edu", "harper@mergington.edu"]
+    },
+    "Debate Team": {
+        "description": "Develop public speaking and argumentation skills",
+        "schedule": "Fridays, 4:00 PM - 5:30 PM",
+        "max_participants": 12,
+        "participants": ["james@mergington.edu", "charlotte@mergington.edu"]
     }
 }
 
@@ -52,6 +88,17 @@ def get_activities():
     return activities
 
 
+@app.get("/activities/{activity_name}")
+def get_activity_details(activity_name: str):
+    """Get details of a specific activity, including participants"""
+    # Validate activity exists
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Return activity details
+    return activities[activity_name]
+
+
 @app.post("/activities/{activity_name}/signup")
 def signup_for_activity(activity_name: str, email: str):
     """Sign up a student for an activity"""
@@ -62,6 +109,68 @@ def signup_for_activity(activity_name: str, email: str):
     # Get the specificy activity
     activity = activities[activity_name]
 
-    # Add student
+    # Validate student is not already signed up
+    if email in activity["participants"]:
+        raise HTTPException(status_code=400, detail="Already signed up for this activity")
+
+
+    # Add student 
+    
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+
+@app.get("/activities/{activity_name}/card", response_class=HTMLResponse)
+def get_activity_card(activity_name: str):
+    """Get an HTML card for a specific activity with participants listed"""
+    # Validate activity exists
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Get the specific activity
+    activity = activities[activity_name]
+
+    # Generate HTML for the activity card
+    participants_list = "".join(f"<li>{participant}</li>" for participant in activity["participants"])
+    html_content = f"""
+    <html>
+        <head>
+            <title>{activity_name} - Activity Card</title>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                }}
+                .card {{
+                    border: 1px solid #ccc;
+                    border-radius: 8px;
+                    padding: 16px;
+                    max-width: 400px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                }}
+                .card h2 {{
+                    margin-top: 0;
+                }}
+                .card ul {{
+                    padding-left: 20px;
+                }}
+                .card ul li {{
+                    margin-bottom: 5px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h2>{activity_name}</h2>
+                <p><strong>Description:</strong> {activity["description"]}</p>
+                <p><strong>Schedule:</strong> {activity["schedule"]}</p>
+                <p><strong>Max Participants:</strong> {activity["max_participants"]}</p>
+                <p><strong>Participants:</strong></p>
+                <ul>
+                    {participants_list}
+                </ul>
+            </div>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
